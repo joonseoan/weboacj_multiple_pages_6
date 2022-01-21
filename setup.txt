@@ -1,0 +1,62 @@
+1. create the second component.
+  - kiwi-image-sec-page
+
+    import Yumi from './yumi.png';
+
+    class Yumiimage {
+      render () {
+        const img = document.createElement('img');
+        img.src = Yumi;
+        img.alt = 'Yumi';
+        img.classList.add('yumi-image');
+
+        const bodyDomElement = document.querySelector('body');
+        bodyDomElement.appendChild(img);
+      }
+    }
+
+    export default Yumiimage;
+
+2. create a second page
+  - kiwi.js
+  
+    import Heading from './components/heading/heading';
+    import KiwiImage from './components/kiwi-image-sec-component/kiwi-image';
+
+    const heading = new Heading();
+    heading.render();
+
+    const kiwiImage = new KiwiImage();
+    kiwiImage.render();
+
+3. rename main index.js to "hello.js"
+
+4. webpack.prod.config.js setup
+
+  entry: {
+     // two page names by using object
+     'hello': './src/hello.js',
+     'kiwi': './src/kiwi.js',
+   },
+   output: {
+     // two keys above will get into [name]
+     // However, in the workplace, the most common substitutions that can be
+     // used are name in square bracket, contenthash in square bracket and id in square bracket.
+     // The id is not going to be human readable name.
+     filename: "[name].[contenthash].js",
+     // filename: bundle.[contenthash].js,
+     path: path.resolve(__dirname, "./dist"),
+ 
+     publicPath: "",
+   },
+
+    new MiniCssExtractPlugin({
+       // Same as above in entry {}
+       filename: "[name].[contenthash].css",
+       //  filename: "styles.[contenthash].css",
+     }),
+
+5. npm run build
+
+
+
