@@ -7,11 +7,20 @@
  const HtmlWebpackPlugin = require("html-webpack-plugin");
  
  module.exports = {
-   entry: "./src/index.js",
+  // 2) multiple pages
+  entry: {
+    'hello': './src/hello.js',
+    'kiwi': './src/kiwi.js',
+  },
+  // 1) single page
+  //  entry: "./src/index.js",
    output: {
-     filename: "bundle.js",
+     // 2) Multiple pages.
+     // Once again, we do not need to use [contenthash] over here
+     filename: '[name].bundle.js',
+     // 1) single page
+    //  filename: "bundle.js",
      path: path.resolve(__dirname, "./dist"),
- 
      publicPath: "",
    },
    mode: "development",
@@ -76,11 +85,29 @@
          path.join(process.cwd(), 'build/**/*'),
        ]
      }),
+     // 2) Multiple pages 
      new HtmlWebpackPlugin({
-       title: 'Hello World!',
-       template: 'src/index.hbs',
-       description: 'Some page'
-     }),
+      filename: 'hello.html',
+      title: 'Hello World!',
+      // a key of the entry above
+      chunks: ['hello'],
+      template: 'src/page-template.hbs',
+      description: 'Hello World'
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'kiwi.html',
+      // a key of the entry above.
+      chunks: ['kiwi'],
+      title: 'Hello World!',
+      template: 'src/page-template.hbs',
+      description: 'Some page'
+    }),
+     // 1) Single page
+    //  new HtmlWebpackPlugin({
+    //    title: 'Hello World!',
+    //    template: 'src/index.hbs',
+    //    description: 'Some page'
+    //  }),
    ],
  };
  

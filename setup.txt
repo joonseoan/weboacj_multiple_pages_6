@@ -58,5 +58,342 @@
 
 5. npm run build
 
+6. Readable index.html in dist folder.
+  1) In webpack.prod.config.js, make the index.html file readable.
+
+    new HtmlWebpackPlugin({
+       title: 'Hello World!',
+       template: 'src/index.hbs',
+       description: 'Some page',
+       // For readable index.html. (default value is true)
+       minify: false,
+     }),
+
+  2) npm run build
+
+  3) Go to index.html in dist folder. Then we will see two separate js and css file links.
+    (since we created two js files and two css files in production.)
+
+    <script defer src="hello.29f001054682a9f07e93.js"></script>
+    <script defer src="kiwi.05889d5a648537c5c783.js"></script>
+    <link href="hello.058b997e46e350b6336b.css" rel="stylesheet">
+    <link href="kiwi.f409ca916df0a0e49864.css" rel="stylesheet">
+    
+7. Separate HTML files in dist folder with separate js and css files.
+
+  1) change file name from "index.hbs" to "page-template.hbs"
+
+  2) Edit Plugins in webpack.prod.config.js
+
+     plugins: [ 
+      new MiniCssExtractPlugin({
+        // Same as above in entry {}
+        filename: "[name].[contenthash].css",
+        //  filename: "styles.[contenthash].css",
+      }),
+      new CleanWebpackPlugin({
+        cleanOnceBeforeBuildPatterns: [
+          '**/*',
+          path.join(process.cwd(), 'build/**/*'),
+        ]
+      }),
+      // 2) separating html file with specific js and css file.
+      new HtmlWebpackPlugin({
+        filename: 'hello-world.html',
+        // "hello" is a key name of "entry" above.
+        // we can use multiple chunks in an array, btw.
+        chunks: ['hello'],
+        title: 'Hello World!',
+        template: 'src/page-template.hbs',
+        description: 'Hello World',
+        minify: false,
+      }),
+      new HtmlWebpackPlugin({
+        filename: 'kiwi.html',
+        // "kiwi" is a key name of "entry" above.
+        // we can use multiple chunks in an array, btw.
+        chunks: ['kiwi'],
+        title: 'Kiwi',
+        template: 'src/page-template.hbs',
+        description: 'Kiwi',
+        minify: false,
+      })
+
+      // 1)
+      // Using a single html file with two js and css files.
+      //  new HtmlWebpackPlugin({
+      //    title: 'Hello World!',
+      //    template: 'src/index.hbs',
+      //    description: 'Some page',
+      //    // For readable index.html. (default value is true)
+      //    minify: false,
+      //  }),
+    ],
+
+  3) npm run build
+    we can find two html with specific js and css file in dist folder.
+
+8. Common Dependencies in multiple bundles --- Switch to ---> Common Dependencies in a single bundle.
+  
+  - [ When use a dependency which is more than 30 KB like lodash] -
+
+  1) npm install lodash
+
+  2) In heading.js in heading folder, setup "compoName" param.
+
+    class Heading {
+      render(compoName) {
+        const h1 = document.createElement("h1");
+        const body = document.querySelector("body");
+        h1.innerHTML = "Webpack is awesome! in " + compoName + " page.";
+        body.appendChild(h1);
+      }
+    }
+
+  3) In hello.js, invoke heading.render(withParam)
+
+    import HelloWorldButton from "./components/hello-world-button/hello-world-button";
+    import Heading from "./components/heading/heading";
+    import _ from 'lodash';
+
+    const heading = new Heading();
+    heading.render(_.upperFirst('hello world'));
+
+    const helloWorldButton = new HelloWorldButton();
+    helloWorldButton.render();
+
+  4) In kiwi.js, invoke heading.render(withParam)
+
+    import Heading from './components/heading/heading';
+    import KiwiImage from './components/kiwi-image-sec-component/kiwi-image';
+    import _ from 'lodash';
+
+    const heading = new Heading();
+    heading.render(_.upperFirst('kiwi'));
+
+    const kiwiImage = new KiwiImage();
+    kiwiImage.render();
+
+  5) npm run build and then see terminal log.
+    [70 Kib] ---> It is too much!!! (because of importing lodash)
+
+    asset hello.c10ba311629c934061f5.js 71 KiB [emitted] [immutable] [minimized] (name: hello) 1 related asset
+    asset kiwi.7198b496cfff2e271727.js 70.7 KiB [emitted] [immutable] [minimized] (name: kiwi) 1 related asset
+
+
+  6) solution for the large memory from dependency.
+
+   - In webpack.prod.config.js
+
+    // optimized common bundle for each html page.
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+      },
+    },
+  
+  - npm run build
+    asset 486.0df9603b69fe7ac86244.js 68.9 KiB [emitted] [immutable] [minimized] (id hint: vendors) 1 related asset // common dependency memory.
+    asset hello.465cab72cab38434c435.js 2.92 KiB [emitted] [immutable] [minimized] (name: hello) // hello.js memory
+    asset kiwi.a795ba05d30d35e66798.js 2.64 KiB [emitted] [immutable] [minimized] (name: kiwi) // kiwi.js memory
+
+  - Go to hell.htm, and kiwi.html in dist folder.
+    We can see <script defer src="486.0df9603b69fe7ac86244.js"></script> which is lodash in both files.
+    It is because we used lodash in both hello.js and kiwi.js files.
+    if we delete lodash in kiwi.js, we could not see <script defer src="486.0df9603b69fe7ac86244.js"></script> in kiwi.html in dist folder.
+
+    ** In, kiwi.js,
+
+    import Heading from './components/heading/heading';
+    import KiwiImage from './components/kiwi-image-sec-component/kiwi-image';
+
+    const heading = new Heading();
+    heading.render('kiwi');
+
+    const kiwiImage = new KiwiImage();
+    kiwiImage.render();
+
+    ** npm run build
+
+    ** go to kiwi.html (No more "<script defer src="486.0df9603b69fe7ac86244.js"></script>")
+      <script defer src="kiwi.1be28de1add506a03492.js"></script><link href="kiwi.f409ca916df0a0e49864.css" rel="stylesheet"></head>
+
+  
+    - [ When use a dependency which is less than 30 KB like react] -
+
+    1) npm install react
+
+    2) In hello.js, import react.
+
+    import HelloWorldButton from "./components/hello-world-button/hello-world-button";
+    import Heading from "./components/heading/heading";
+    import React from 'react';
+
+    const heading = new Heading();
+    heading.render('hello world');
+
+    const helloWorldButton = new HelloWorldButton();
+    helloWorldButton.render();
+
+  3) In kiwi.js, import react
+
+    import Heading from './components/heading/heading';
+    import KiwiImage from './components/kiwi-image-sec-component/kiwi-image';
+    import React from 'react';
+
+    const heading = new Heading();
+    heading.render('kiwi');
+
+    const kiwiImage = new KiwiImage();
+    kiwiImage.render();
+
+  4) npm run build
+    - We can not find the common dependency like lodash above (because react memory is less than 30KB).
+
+    asset hello.481b74022a01a03cdfff.js 4.02 KiB [emitted] [immutable] [minimized] (name: hello) 1 related asset
+    asset kiwi.bb652bbaebd3f7296d5e.js 3.74 KiB [emitted] [immutable] [minimized] (name: kiwi) 1 related asset
+
+  5) In order to make the custom criteria for the common dependency,
+
+    optimization: {
+      splitChunks: {
+        chunks: 'all',
+        minSize: 3000, // Now if the dependency has more than approximately 3KB, it can be a common dependency.
+      },
+    },
+
+9. development configuration for multiple pages.
+
+  - In webpack.dev.config.js,
+
+   /**
+    * [Multiple Pages]
+    */
+
+    const path = require("path");
+    const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+    const HtmlWebpackPlugin = require("html-webpack-plugin");
+    
+    module.exports = {
+      // 2) multiple pages
+      entry: {
+        'hello': './src/hello.js',
+        'kiwi': './src/kiwi.js',
+      },
+      // 1) single page
+      //  entry: "./src/index.js",
+      output: {
+        // 2) Multiple pages.
+        // Once again, we do not need to use [contenthash] over here
+        filename: '[name].bundle.js',
+        // 1) single page
+        //  filename: "bundle.js",
+        path: path.resolve(__dirname, "./dist"),
+        publicPath: "",
+      },
+      mode: "development",
+      devServer: {
+        port: 9000,
+        static: {
+          directory: path.resolve(__dirname, "./dist"),
+        },
+        devMiddleware: {
+          index: "index.html",
+          writeToDisk: true,
+        },
+      },
+      module: {
+        rules: [
+          {
+            test: /\.(ttf)$/,
+            type: "asset/resource",
+          },
+          {
+            test: /\.(png|jpg)$/,
+            type: "asset",
+            parser: {
+              dataUrlCondition: {
+                maxSize: 3 * 1024,
+              },
+            },
+          },
+          {
+            test: /\.txt/,
+            type: "asset/source",
+          },
+          {
+            test: /\.css/,
+            use: ["style-loader", "css-loader"],
+          },
+          {
+            test: /\.scss/,
+            use: ["style-loader", "css-loader", "sass-loader"],
+          },
+          {
+            test: /\.js$/,
+            exclude: /node_modules/,
+            use: {
+              loader: "babel-loader",
+              options: {
+                presets: ["@babel/env"],
+                plugins: ["@babel/plugin-proposal-class-properties"],
+              },
+            },
+          },
+          {
+            test: /\.hbs/,
+            use: ['handlebars-loader']
+          }
+        ],
+      },
+      plugins: [     
+        new CleanWebpackPlugin({
+          cleanOnceBeforeBuildPatterns: [
+            '**/*',
+            path.join(process.cwd(), 'build/**/*'),
+          ]
+        }),
+        // 2) Multiple pages 
+        new HtmlWebpackPlugin({
+          filename: 'hello.html',
+          title: 'Hello World!',
+          // a key of the entry above
+          chunks: ['hello'],
+          template: 'src/page-template.hbs',
+          description: 'Hello World'
+        }),
+        new HtmlWebpackPlugin({
+          filename: 'kiwi.html',
+          // a key of the entry above.
+          chunks: ['kiwi'],
+          title: 'Hello World!',
+          template: 'src/page-template.hbs',
+          description: 'Some page'
+        }),
+        // 1) Single page
+        //  new HtmlWebpackPlugin({
+        //    title: 'Hello World!',
+        //    template: 'src/index.hbs',
+        //    description: 'Some page'
+        //  }),
+      ],
+    };
+
+  - npm run dev
+  - Go to browser and
+    http://localhost:9000/hello.html
+    http://localhost:9000/kiwi.html
+      
+
+
+    
+
+
+
+
+
+
+
+
 
 

@@ -31,6 +31,13 @@
      publicPath: "",
    },
    mode: "production",
+   // optimized common bundle for each html page.
+   optimization: {
+    splitChunks: {
+      chunks: 'all',
+      minSize: 3000, // if the dependency size is min 3kb, it can be a custom common dependency.
+    },
+   },
    module: {
      rules: [
        {
@@ -87,11 +94,37 @@
          path.join(process.cwd(), 'build/**/*'),
        ]
      }),
-     new HtmlWebpackPlugin({
-       title: 'Hello World!',
-       template: 'src/index.hbs',
-       description: 'Some page'
-     }),
+    // 2) separating html file with specific js and css file.
+    new HtmlWebpackPlugin({
+      filename: 'hello-world.html',
+      // "hello" is a key name of "entry" above.
+      // we can use multiple chunks in an array, btw.
+      chunks: ['hello'],
+      title: 'Hello World!',
+      template: 'src/page-template.hbs',
+      description: 'Hello World',
+      minify: false,
+    }),
+    new HtmlWebpackPlugin({
+      filename: 'kiwi.html',
+      // "kiwi" is a key name of "entry" above.
+      // we can use multiple chunks in an array, btw.
+      chunks: ['kiwi'],
+      title: 'Kiwi',
+      template: 'src/page-template.hbs',
+      description: 'Kiwi',
+      minify: false,
+    })
+
+    // 1)
+    // Using a single html file with two js and css files.
+    //  new HtmlWebpackPlugin({
+    //    title: 'Hello World!',
+    //    template: 'src/index.hbs',
+    //    description: 'Some page',
+    //    // For readable index.html. (default value is true)
+    //    minify: false,
+    //  }),
    ],
  };
  
